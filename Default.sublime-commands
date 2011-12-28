@@ -1,0 +1,13 @@
+[
+    {
+        "caption": "Fetch",
+        "command": "fetch"
+    },
+    {
+        "caption": "Preferences: Fetch – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/Fetch/Fetch.sublime-settings"
+        }
+    }
+]

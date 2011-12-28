@@ -14,10 +14,16 @@ class FetchCommand(sublime_plugin.WindowCommand):
         s = sublime.load_settings('Fetch.sublime-settings')
         files = s.get('files')
         self.fetchList = []
+        if not files:
+            #add jquery as example
+            s.set('files', {"jquery" : "http://code.jquery.com/jquery.min.js"})
+            sublime.save_settings('Fetch.sublime-settings')
+            files = s.get('files')
+
         for name, url in files.iteritems():
             self.fetchList.append([name, url])
             
-        self.window.show_quick_panel(self.fetchList , self.callback, sublime.MONOSPACE_FONT)
+        self.window.show_quick_panel(self.fetchList , self.callback)
 
     def callback(self, index):
         if (index > -1):

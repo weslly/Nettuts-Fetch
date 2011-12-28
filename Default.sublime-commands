@@ -4,10 +4,10 @@
         "command": "fetch"
     },
     {
-        "caption": "Preferences: Fetch – User",
+        "caption": "Fetch: Manage remote files",
         "command": "open_file", "args":
         {
-            "file": "${packages}/Fetch/Fetch.sublime-settings"
+            "file": "${packages}/User/Fetch.sublime-settings"
         }
     }
 ]

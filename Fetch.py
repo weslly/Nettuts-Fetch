@@ -44,3 +44,4 @@ class FetchInsertFileCommand(sublime_plugin.TextCommand):
 
         for region in self.view.sel():
             self.view.replace(edit, region, self.result)
+            sublime.status_message("The file was successfully fetched from " + url)

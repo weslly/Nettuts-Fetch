@@ -2,6 +2,7 @@
     "files": {
         "reset" : "http://meyerweb.com/eric/tools/css/reset/reset.css",
         "prefix-free" : "https://raw.github.com/LeaVerou/prefixfree/master/prefixfree.min.js",
+        "jquery" : "http://code.jquery.com/jquery.min.js",
         "blueprint_screen": "https://raw.github.com/joshuaclayton/blueprint-css/master/blueprint/screen.css"
     }
 }

@@ -30,7 +30,7 @@ class FetchInsertFileCommand(sublime_plugin.TextCommand):
         try:
             request = urllib2.Request(url)
             http_file = urllib2.urlopen(request, timeout=5)
-            self.result = http_file.read()
+            self.result = unicode(http_file.read(), 'utf-8')
 
         except (urllib2.URLError) as (e):
             err = '%s: URL error %s contacting API' % (__name__, str(e.reason))

@@ -25,6 +25,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
             self.window.active_view().run_command("fetch_insert_file", {"url": url})
 
 class FetchInsertFileCommand(sublime_plugin.TextCommand):
+    result = None
     def run(self, edit, url):
         try:
             request = urllib2.Request(url)

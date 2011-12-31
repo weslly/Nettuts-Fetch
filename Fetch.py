@@ -6,6 +6,7 @@ import threading
 import zipfile
 import re
 import subprocess
+import shutil
 
 try:
     import ssl
@@ -51,6 +52,9 @@ class FetchCommand(sublime_plugin.WindowCommand):
 
     def set_package_location(self, index):
         if (index > -1):
+            if not self.window.folders():
+                sublime.error_message('Error: You must have at least one folder opened to download this package.')
+                return False
             self.packageUrl = self.packageList[index][1]
 
             self.window.show_input_panel(
@@ -193,7 +197,6 @@ class FetchDownload(threading.Thread):
         try:
             finalLocation = os.path.join(self.location, '__tmp_package.zip')
             has_ssl = 'ssl' in sys.modules
-            # is_ssl = re.search('^https://', self.url) != None
 
             if has_ssl:
                 urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler()))
@@ -224,11 +227,55 @@ class FetchDownload(threading.Thread):
                 return False
 
             else:
-                zip_file = zipfile.ZipFile(finalLocation, 'r')
-                zip_file.extractall(self.location)
-                zip_file.close()
+                pkg = zipfile.ZipFile(finalLocation, 'r')
+
+                root_level_paths = []
+                last_path = None
+                for path in pkg.namelist():
+                    last_path = path
+                    if path.find('/') in [len(path)-1, -1]:
+                        root_level_paths.append(path)
+                    if path[0] == '/' or path.find('..') != -1:
+                        sublime.error_message(__name__ + ': Unable to extract package due to unsafe filename on one or more files.')
+                        return False
+
+                if last_path and len(root_level_paths) == 0:
+                    root_level_paths.append(last_path[0:last_path.find('/')+1])
+
+                os.chdir(self.location)
+
+                skip_root_dir = len(root_level_paths) == 1 and \
+                    root_level_paths[0].endswith('/')
+                for path in pkg.namelist():
+                    dest = path
+                    if os.name == 'nt':
+                        regex = ':|\*|\?|"|<|>|\|'
+                        if re.search(regex, dest) != None:
+                            print ('%s: Skipping file from package named %s due to an invalid filename') % (__name__, path)
+                            continue
+                    regex = '[\x00-\x1F\x7F-\xFF]'
+                    if re.search(regex, dest) != None:
+                        dest = dest.decode('utf-8')
+
+                    if skip_root_dir:
+                        dest = dest[len(root_level_paths[0]):]
+                    dest = os.path.join(self.location, dest)
+                    if path.endswith('/'):
+                        if not os.path.exists(dest):
+                            os.makedirs(dest)
+                    else:
+                        dest_dir = os.path.dirname(dest)
+                        if not os.path.exists(dest_dir):
+                            os.makedirs(dest_dir)
+                        try:
+                            open(dest, 'wb').write(pkg.read(path))
+                        except (IOError, UnicodeDecodeError):
+                            print ('%s: Skipping file from package named %s due to an invalid filename') % (__name__, path)
+
+                pkg.close()
+
                 os.remove(finalLocation)
-                self.result = True            
+                self.result = True
             
             return
 

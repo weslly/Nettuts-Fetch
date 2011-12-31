@@ -1,8 +1,16 @@
 import sublime, sublime_plugin
 import urllib, urllib2
 import os
+import sys
 import threading
 import zipfile
+import re
+import subprocess
+
+try:
+    import ssl
+except (ImportError):
+    pass
 
 class FetchCommand(sublime_plugin.WindowCommand):
     fileList = []
@@ -84,9 +92,34 @@ class FetchInsertFileCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, url):
         try:
-            request = urllib2.Request(url)
-            http_file = urllib2.urlopen(request, timeout=5)
-            self.result = unicode(http_file.read(), 'utf-8')
+            downloaded = False
+            has_ssl = 'ssl' in sys.modules
+            is_ssl = re.search('^https://', url) != None
+            if (is_ssl and has_ssl) or not is_ssl:
+                request = urllib2.Request(url)
+                http_file = urllib2.urlopen(request, timeout=10)
+                self.result = unicode(http_file.read(), 'utf-8')
+                downloaded = True
+
+            else:
+                clidownload = CliDownloader()
+                if clidownload.find_binary('wget'):
+                    command = [clidownload.find_binary('wget'), '--connect-timeout=10',
+                        url, '-qO-']
+                    self.result = unicode(clidownload.execute(command), 'utf-8')
+                    downloaded = True
+
+                elif clidownload.find_binary('curl'):
+                    command = [clidownload.find_binary('curl'), '--connect-timeout', '10', '-L', '-sS',
+                        url]
+                    self.result = unicode(clidownload.execute(command), 'utf-8')
+                    downloaded = True
+
+            if not downloaded:
+                sublime.error_message('Unable to download ' +
+                    url + ' due to no ssl module available and no capable ' +
+                    'program found. Please install curl or wget.')
+                return False
 
         except (urllib2.URLError) as (e):
             err = '%s: URL error %s contacting API' % (__name__, str(e.reason))
@@ -113,8 +146,10 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
         self.handle_threads(edit, threads)
 
     def handle_threads(self, edit, threads, offset=0, i=0, dir=1):
+        status = None
         next_threads = []
         for thread in threads:
+            status = thread.result
             if thread.is_alive():
                 next_threads.append(thread)
                 continue
@@ -140,7 +175,8 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
             return
 
         self.view.erase_status('fetch')
-        
+        if status == True:
+            sublime.status_message('The package from %s was successfully downloaded and extracted' % (self.url))
 
 
 class FetchDownload(threading.Thread):
@@ -151,23 +187,49 @@ class FetchDownload(threading.Thread):
         self.result = None
         threading.Thread.__init__(self)
 
-    def run(self):
-        try:
-            urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler()));
-            finalLocation = os.path.join(self.location, '_fetch_package.zip')
-            request = urllib2.Request(self.url)
-            response = urllib2.urlopen(request, timeout=self.timeout)
-            output = open(finalLocation,'wb')
-            output.write(response.read())
-            output.close()
 
-            zip_file = zipfile.ZipFile(finalLocation, 'r')
-            zip_file.extractall(self.location)
-            zip_file.close()
-            os.remove(finalLocation)
+    def run(self):
+        downloaded = False
+        try:
+            finalLocation = os.path.join(self.location, '__tmp_package.zip')
+            has_ssl = 'ssl' in sys.modules
+            is_ssl = re.search('^https://', self.url) != None
+
+            if (is_ssl and has_ssl) or not is_ssl:
+                urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler()))
+                request = urllib2.Request(self.url)
+                response = urllib2.urlopen(request, timeout=self.timeout)
+                output = open(finalLocation,'wb')
+                output.write(response.read())
+                output.close()
+                downloaded = True
+
+            else:
+                clidownload = CliDownloader()
+                if clidownload.find_binary('wget'):
+                    command = [clidownload.find_binary('wget'), '--connect-timeout=' + str(int(self.timeout)), '-O',
+                        finalLocation, self.url]
+                    clidownload.execute(command)
+                    downloaded = True
+                elif clidownload.find_binary('curl'):
+                    command = [clidownload.find_binary('curl'), '--connect-timeout', str(int(self.timeout)), '-L',
+                        self.url, '-o', finalLocation]
+                    clidownload.execute(command)
+                    downloaded = True
+                
+            if not downloaded:
+                sublime.error_message('Unable to download ' +
+                    self.url + ' due to no ssl module available and no capable ' +
+                    'program found. Please install curl or wget.')
+                return False
+
+            else:
+                zip_file = zipfile.ZipFile(finalLocation, 'r')
+                zip_file.extractall(self.location)
+                zip_file.close()
+                os.remove(finalLocation)
+                self.result = True            
             
-            sublime.status_message('The package from %s was successfully downloaded and extracted' % (self.url))
-            self.result = True
             return
 
         except (urllib2.HTTPError) as (e):
@@ -177,3 +239,38 @@ class FetchDownload(threading.Thread):
 
         sublime.error_message(err)
         self.result = False
+
+
+class BinaryNotFoundError(Exception):
+    pass
+
+class NonCleanExitError(Exception):
+    def __init__(self, returncode):
+        self.returncode = returncode
+
+    def __str__(self):
+        return repr(self.returncode)
+
+class CliDownloader():
+    def find_binary(self, name):
+        dirs = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin',
+            '/sbin', '/bin']
+        for dir in dirs:
+            path = os.path.join(dir, name)
+            if os.path.exists(path):
+                return path
+
+        raise BinaryNotFoundError('The binary ' + name + ' could not be ' +
+            'located')
+
+    def execute(self, args):
+        proc = subprocess.Popen(args, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        output = proc.stdout.read()
+        returncode = proc.wait()
+        if returncode != 0:
+            error = NonCleanExitError(returncode)
+            error.output = output
+            raise error
+        return output

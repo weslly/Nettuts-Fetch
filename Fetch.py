@@ -140,8 +140,7 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
             return
 
         self.view.erase_status('fetch')
-        sublime.status_message('The package from %s was successfully downloaded and extracted' %
-            (self.url))
+        
 
 
 class FetchDownload(threading.Thread):
@@ -167,6 +166,7 @@ class FetchDownload(threading.Thread):
             zip_file.close()
             os.remove(finalLocation)
             
+            sublime.status_message('The package from %s was successfully downloaded and extracted' % (self.url))
             self.result = True
             return
 

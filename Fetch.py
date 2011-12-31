@@ -94,8 +94,8 @@ class FetchInsertFileCommand(sublime_plugin.TextCommand):
         try:
             downloaded = False
             has_ssl = 'ssl' in sys.modules
-            is_ssl = re.search('^https://', url) != None
-            if (is_ssl and has_ssl) or not is_ssl:
+            # is_ssl = re.search('^https://', url) != None
+            if has_ssl:
                 request = urllib2.Request(url)
                 http_file = urllib2.urlopen(request, timeout=10)
                 self.result = unicode(http_file.read(), 'utf-8')
@@ -193,9 +193,9 @@ class FetchDownload(threading.Thread):
         try:
             finalLocation = os.path.join(self.location, '__tmp_package.zip')
             has_ssl = 'ssl' in sys.modules
-            is_ssl = re.search('^https://', self.url) != None
+            # is_ssl = re.search('^https://', self.url) != None
 
-            if (is_ssl and has_ssl) or not is_ssl:
+            if has_ssl:
                 urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler()))
                 request = urllib2.Request(self.url)
                 response = urllib2.urlopen(request, timeout=self.timeout)

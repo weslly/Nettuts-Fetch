@@ -43,6 +43,9 @@ class FetchCommand(sublime_plugin.WindowCommand):
         self.window.show_quick_panel(options, self.callback)
 
     def callback(self, index):
+        if not self.window.views():
+            self.window.new_file()
+
         if (index == 0):
             self.list_files()
         elif (index == 1):
@@ -181,7 +184,7 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
             if not before:
                 dir = 1
             i += dir
-            self.view.set_status('fetch', 'Downloading package from %s [%s=%s] ' % \
+            sublime.status_message('Downloading package from %s [%s=%s] ' % \
                 (self.url ,' ' * before, ' ' * after))
 
             sublime.set_timeout(lambda: self.handle_threads(edit, threads,

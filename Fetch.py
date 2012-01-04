@@ -6,7 +6,6 @@ import threading
 import zipfile
 import re
 import subprocess
-import shutil
 
 try:
     import ssl
@@ -83,7 +82,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
         if not os.path.exists(location):
             return False
         else:
-            self.window.active_view().run_command("fetch_extract_package", {"url": self.packageUrl, "location": location})
+            self.window.active_view().run_command("fetch_get", {"option": "package", "url": self.packageUrl, "location": location})
 
     def list_files(self):
         files = self.s.get('files')
@@ -101,63 +100,22 @@ class FetchCommand(sublime_plugin.WindowCommand):
     def get_file(self, index):
         if (index > -1):
             url = self.fileList[index][1]
-            self.window.active_view().run_command("fetch_insert_file", {"url": url})
+            self.window.active_view().run_command("fetch_get", {"option": "txt", "url": url})
 
 
-class FetchInsertFileCommand(sublime_plugin.TextCommand):
-    result = None
-
-    def run(self, edit, url):
-        try:
-            downloaded = False
-            has_ssl = 'ssl' in sys.modules
-            # is_ssl = re.search('^https://', url) != None
-            if has_ssl:
-                request = urllib2.Request(url)
-                http_file = urllib2.urlopen(request, timeout=10)
-                self.result = unicode(http_file.read(), 'utf-8')
-                downloaded = True
-
-            else:
-                clidownload = CliDownloader()
-                if clidownload.find_binary('wget'):
-                    command = [clidownload.find_binary('wget'), '--connect-timeout=10',
-                        url, '-qO-']
-                    self.result = unicode(clidownload.execute(command), 'utf-8')
-                    downloaded = True
-
-                elif clidownload.find_binary('curl'):
-                    command = [clidownload.find_binary('curl'), '--connect-timeout', '10', '-L', '-sS',
-                        url]
-                    self.result = unicode(clidownload.execute(command), 'utf-8')
-                    downloaded = True
-
-            if not downloaded:
-                sublime.error_message('Unable to download ' +
-                    url + ' due to no ssl module available and no capable ' +
-                    'program found. Please install curl or wget.')
-                return False
-
-        except (urllib2.URLError) as (e):
-            err = '%s: URL error %s contacting API' % (__name__, str(e.reason))
-            sublime.error_message(err)
-
-        for region in self.view.sel():
-            self.view.replace(edit, region, self.result)
-            sublime.status_message("The file was successfully fetched from " + url)
-
-
-class FetchExtractPackageCommand(sublime_plugin.TextCommand):
+class FetchGetCommand(sublime_plugin.TextCommand):
     result = None
     url = None
     location = None
+    option = None
 
-    def run(self, edit, url, location):
+    def run(self, edit, option, url, location = None):
         self.url = url
         self.location = location
+        self.option = option
 
         threads = []
-        thread = FetchDownload(url, location, 5)
+        thread = FetchDownload(url, option, location, 5)
         threads.append(thread)
         thread.start()
         self.handle_threads(edit, threads)
@@ -167,6 +125,7 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
         next_threads = []
         for thread in threads:
             status = thread.result
+            txt = thread.txt
             if thread.is_alive():
                 next_threads.append(thread)
                 continue
@@ -179,12 +138,12 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
             # This animates a little activity indicator in the status area
             before = i % 8
             after = (7) - before
-            if not after:
-                dir = -1
-            if not before:
-                dir = 1
+
+            if not after: dir = -1
+            if not before: dir = 1
+
             i += dir
-            sublime.status_message('Downloading package from %s [%s=%s] ' % \
+            sublime.status_message('Downloading file from %s [%s=%s] ' % \
                 (self.url ,' ' * before, ' ' * after))
 
             sublime.set_timeout(lambda: self.handle_threads(edit, threads,
@@ -192,20 +151,71 @@ class FetchExtractPackageCommand(sublime_plugin.TextCommand):
             return
 
         self.view.erase_status('fetch')
-        if status == True:
+        if status and self.option == 'package':
             sublime.status_message('The package from %s was successfully downloaded and extracted' % (self.url))
+
+        elif status and self.option == 'txt':
+            for region in self.view.sel():
+                self.view.replace(edit, region, txt)
+
+            sublime.status_message('The file was successfully downloaded from %s' % (self.url))
+
 
 
 class FetchDownload(threading.Thread):
-    def __init__(self, url, location, timeout):
+    def __init__(self, url, option, location, timeout):
         self.url = url
         self.location = location
         self.timeout = timeout
+        self.option = option
         self.result = None
+        self.txt = None
         threading.Thread.__init__(self)
 
 
     def run(self):
+        if self.option == 'txt':
+            self.download_text()
+        elif self.option == 'package':
+            self.download_package()
+
+    def download_text(self):
+        try:
+            downloaded = False
+            has_ssl = 'ssl' in sys.modules
+            if has_ssl:
+                request = urllib2.Request(self.url)
+                http_file = urllib2.urlopen(request, timeout=self.timeout)
+                self.txt = unicode(http_file.read(), 'utf-8')
+                downloaded = True
+
+            else:
+                clidownload = CliDownloader()
+                if clidownload.find_binary('wget'):
+                    command = [clidownload.find_binary('wget'), '--connect-timeout=' + str(int(self.timeout)),
+                        self.url, '-qO-']
+                    self.txt = unicode(clidownload.execute(command), 'utf-8')
+                    downloaded = True
+
+                elif clidownload.find_binary('curl'):
+                    command = [clidownload.find_binary('curl'), '--connect-timeout', str(int(self.timeout)), '-L', '-sS',
+                        self.url]
+                    self.txt = unicode(clidownload.execute(command), 'utf-8')
+                    downloaded = True
+
+            if not downloaded:
+                sublime.error_message('Unable to download ' +
+                    self.url + ' due to no ssl module available and no capable ' +
+                    'program found. Please install curl or wget.')
+                return False
+            else:
+                self.result = True
+
+        except (urllib2.URLError) as (e):
+            err = '%s: URL error %s contacting API' % (__name__, str(e.reason))
+            sublime.error_message(err)
+
+    def download_package(self):
         downloaded = False
         try:
             finalLocation = os.path.join(self.location, '__tmp_package.zip')
@@ -334,3 +344,4 @@ class CliDownloader():
             error.output = output
             raise error
         return output
+        

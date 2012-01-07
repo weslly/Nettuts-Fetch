@@ -4,4 +4,4 @@
 
 ------
 
-###Screenshots, installation and usage details http://net.tutsplus.com/articles/news/introducing-nettuts-fetch/
+###Screenshots, installation and usage details at http://net.tutsplus.com/articles/news/introducing-nettuts-fetch/

@@ -6,6 +6,6 @@
 
 ------
 
-###Installation
+###Screenshots, installation and usage details
 
-Install this repository via "Package Control" plugin http://wbond.net/sublime_packages/package_control
+http://net.tutsplus.com/articles/news/introducing-nettuts-fetch/

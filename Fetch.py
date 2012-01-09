@@ -64,14 +64,23 @@ class FetchCommand(sublime_plugin.WindowCommand):
 
     def set_package_location(self, index):
         if (index > -1):
-            if not self.window.folders():
-                sublime.error_message('Error: You must have at least one folder opened to download this package.')
-                return False
             self.packageUrl = self.packageList[index][1]
+
+            if not self.window.folders():
+                initialFolder = os.path.expanduser('~')
+                try:
+                    from win32com.shell import shellcon, shell            
+                    initialFolder = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
+
+                except ImportError:
+                    initialFolder = os.path.expanduser("~")
+
+            else:
+                initialFolder = self.window.folders()[0]
 
             self.window.show_input_panel(
                 "Select a location to extract the files: ", 
-                self.window.folders()[0], 
+                initialFolder, 
                 self.get_package,
                 None,
                 None
@@ -296,7 +305,6 @@ class FetchDownload(threading.Thread):
                             print ('%s: Skipping file from package named %s due to an invalid filename') % (__name__, path)
 
                 pkg.close()
-
                 os.remove(finalLocation)
                 self.result = True
             
@@ -323,9 +331,7 @@ class NonCleanExitError(Exception):
 
 class CliDownloader():
     def find_binary(self, name):
-        dirs = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin',
-            '/sbin', '/bin']
-        for dir in dirs:
+        for dir in os.environ['PATH'].split(os.pathsep):
             path = os.path.join(dir, name)
             if os.path.exists(path):
                 return path

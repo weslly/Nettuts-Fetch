@@ -19,7 +19,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
     packageUrl = None
 
     filesPlaceholder = {"jquery" : "http://code.jquery.com/jquery.min.js"}
-    packagesPlaceholder = {"html5-boilerplate" : "http://github.com/h5bp/html5-boilerplate/zipball/v2.0stripped"}
+    packagesPlaceholder = {"html5-boilerplate" : "https://github.com/h5bp/html5-boilerplate/zipball/master"}
 
     def __init__(self, *args, **kwargs):
         super(FetchCommand, self).__init__(*args, **kwargs)

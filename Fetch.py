@@ -1,5 +1,7 @@
-import sublime, sublime_plugin
-import urllib, urllib2
+import sublime
+import sublime_plugin
+import urllib
+import urllib2
 import os
 import sys
 import threading
@@ -12,14 +14,16 @@ try:
 except (ImportError):
     pass
 
+
 class FetchCommand(sublime_plugin.WindowCommand):
     fileList = []
     packageList = []
     s = None
     packageUrl = None
 
-    filesPlaceholder = {"jquery" : "http://code.jquery.com/jquery.min.js"}
-    packagesPlaceholder = {"html5-boilerplate" : "https://github.com/h5bp/html5-boilerplate/zipball/master"}
+    filesPlaceholder = {"jquery": "http://code.jquery.com/jquery.min.js"}
+    packagesPlaceholder = {"html5_boilerplate":
+                    "https://github.com/h5bp/html5-boilerplate/zipball/master"}
 
     def __init__(self, *args, **kwargs):
         super(FetchCommand, self).__init__(*args, **kwargs)
@@ -30,7 +34,6 @@ class FetchCommand(sublime_plugin.WindowCommand):
         if not s.has('files'):
             s.set('files', self.filesPlaceholder)
         sublime.save_settings('Fetch.sublime-settings')
-
 
     def run(self):
         self.s = sublime.load_settings('Fetch.sublime-settings')
@@ -49,7 +52,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
             self.list_files()
         elif (index == 1):
             self.list_packages()
-    
+
     def list_packages(self):
         packages = self.s.get('packages')
         if not packages:
@@ -60,7 +63,8 @@ class FetchCommand(sublime_plugin.WindowCommand):
         for name, url in packages.iteritems():
             self.packageList.append([name, url])
 
-        self.window.show_quick_panel(self.packageList , self.set_package_location)
+        self.window.show_quick_panel(self.packageList,
+                                     self.set_package_location)
 
     def set_package_location(self, index):
         if (index > -1):
@@ -69,8 +73,9 @@ class FetchCommand(sublime_plugin.WindowCommand):
             if not self.window.folders():
                 initialFolder = os.path.expanduser('~')
                 try:
-                    from win32com.shell import shellcon, shell            
-                    initialFolder = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
+                    from win32com.shell import shellcon, shell
+                    initialFolder = shell.SHGetFolderPath(0,
+                                    shellcon.CSIDL_APPDATA, 0, 0)
 
                 except ImportError:
                     initialFolder = os.path.expanduser("~")
@@ -79,19 +84,23 @@ class FetchCommand(sublime_plugin.WindowCommand):
                 initialFolder = self.window.folders()[0]
 
             self.window.show_input_panel(
-                "Select a location to extract the files: ", 
-                initialFolder, 
+                "Select a location to extract the files: ",
+                initialFolder,
                 self.get_package,
                 None,
                 None
             )
 
     def get_package(self, location):
-        os.makedirs(location) if not os.path.exists(location) else None;
         if not os.path.exists(location):
-            return False
-        else:
-            self.window.active_view().run_command("fetch_get", {"option": "package", "url": self.packageUrl, "location": location})
+            try:
+                os.makedirs(location)
+            except:
+                sublime.error_message('ERROR: Could not create directory.')
+                return False
+
+        self.window.active_view().run_command("fetch_get", {"option":
+                    "package", "url": self.packageUrl, "location": location})
 
     def list_files(self):
         files = self.s.get('files')
@@ -104,12 +113,13 @@ class FetchCommand(sublime_plugin.WindowCommand):
         for name, url in files.iteritems():
             self.fileList.append([name, url])
 
-        self.window.show_quick_panel(self.fileList , self.get_file)
-    
+        self.window.show_quick_panel(self.fileList, self.get_file)
+
     def get_file(self, index):
         if (index > -1):
             url = self.fileList[index][1]
-            self.window.active_view().run_command("fetch_get", {"option": "txt", "url": url})
+            self.window.active_view().run_command("fetch_get",
+                                                 {"option": "txt", "url": url})
 
 
 class FetchGetCommand(sublime_plugin.TextCommand):
@@ -118,7 +128,7 @@ class FetchGetCommand(sublime_plugin.TextCommand):
     location = None
     option = None
 
-    def run(self, edit, option, url, location = None):
+    def run(self, edit, option, url, location=None):
         self.url = url
         self.location = location
         self.option = option
@@ -140,20 +150,22 @@ class FetchGetCommand(sublime_plugin.TextCommand):
                 continue
             if thread.result == False:
                 continue
-        
+
         threads = next_threads
-        
+
         if len(threads):
             # This animates a little activity indicator in the status area
             before = i % 8
             after = (7) - before
 
-            if not after: dir = -1
-            if not before: dir = 1
+            if not after:
+                dir = -1
+            if not before:
+                dir = 1
 
             i += dir
             sublime.status_message('Downloading file from %s [%s=%s] ' % \
-                (self.url ,' ' * before, ' ' * after))
+                (self.url, ' ' * before, ' ' * after))
 
             sublime.set_timeout(lambda: self.handle_threads(edit, threads,
                  offset, i, dir), 100)
@@ -161,14 +173,15 @@ class FetchGetCommand(sublime_plugin.TextCommand):
 
         self.view.erase_status('fetch')
         if status and self.option == 'package':
-            sublime.status_message('The package from %s was successfully downloaded and extracted' % (self.url))
+            sublime.status_message('The package from %s was successfully' +
+                                   ' downloaded and extracted' % (self.url))
 
         elif status and self.option == 'txt':
             for region in self.view.sel():
                 self.view.replace(edit, region, txt)
 
-            sublime.status_message('The file was successfully downloaded from %s' % (self.url))
-
+            sublime.status_message('The file was successfully downloaded' +
+                                   ' from %s' % (self.url))
 
 
 class FetchDownload(threading.Thread):
@@ -180,7 +193,6 @@ class FetchDownload(threading.Thread):
         self.result = None
         self.txt = None
         threading.Thread.__init__(self)
-
 
     def run(self):
         if self.option == 'txt':
@@ -201,21 +213,23 @@ class FetchDownload(threading.Thread):
             else:
                 clidownload = CliDownloader()
                 if clidownload.find_binary('wget'):
-                    command = [clidownload.find_binary('wget'), '--connect-timeout=' + str(int(self.timeout)),
-                        self.url, '-qO-']
+                    command = [clidownload.find_binary('wget'),
+                                '--connect-timeout=' + str(int(self.timeout)),
+                                self.url, '-qO-']
                     self.txt = unicode(clidownload.execute(command), 'utf-8')
                     downloaded = True
 
                 elif clidownload.find_binary('curl'):
-                    command = [clidownload.find_binary('curl'), '--connect-timeout', str(int(self.timeout)), '-L', '-sS',
-                        self.url]
+                    command = [clidownload.find_binary('curl'),
+                                '--connect-timeout', str(int(self.timeout)),
+                                '-L', '-sS', self.url]
                     self.txt = unicode(clidownload.execute(command), 'utf-8')
                     downloaded = True
 
             if not downloaded:
-                sublime.error_message('Unable to download ' +
-                    self.url + ' due to no ssl module available and no capable ' +
-                    'program found. Please install curl or wget.')
+                sublime.error_message('Unable to download ' + self.url +
+                            ' due to no ssl module available and no capable' +
+                            ' program found. Please install curl or wget.')
                 return False
             else:
                 self.result = True
@@ -231,10 +245,11 @@ class FetchDownload(threading.Thread):
             has_ssl = 'ssl' in sys.modules
 
             if has_ssl:
-                urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler()))
+                urllib2.install_opener(
+                    urllib2.build_opener(urllib2.ProxyHandler()))
                 request = urllib2.Request(self.url)
                 response = urllib2.urlopen(request, timeout=self.timeout)
-                output = open(finalLocation,'wb')
+                output = open(finalLocation, 'wb')
                 output.write(response.read())
                 output.close()
                 downloaded = True
@@ -242,20 +257,22 @@ class FetchDownload(threading.Thread):
             else:
                 clidownload = CliDownloader()
                 if clidownload.find_binary('wget'):
-                    command = [clidownload.find_binary('wget'), '--connect-timeout=' + str(int(self.timeout)), '-O',
-                        finalLocation, self.url]
+                    command = [clidownload.find_binary('wget'),
+                                '--connect-timeout=' + str(int(self.timeout)),
+                                '-O', finalLocation, self.url]
                     clidownload.execute(command)
                     downloaded = True
                 elif clidownload.find_binary('curl'):
-                    command = [clidownload.find_binary('curl'), '--connect-timeout', str(int(self.timeout)), '-L',
-                        self.url, '-o', finalLocation]
+                    command = [clidownload.find_binary('curl'),
+                                '--connect-timeout', str(int(self.timeout)),
+                                '-L', self.url, '-o', finalLocation]
                     clidownload.execute(command)
                     downloaded = True
-                
+
             if not downloaded:
-                sublime.error_message('Unable to download ' +
-                    self.url + ' due to no ssl module available and no capable ' +
-                    'program found. Please install curl or wget.')
+                sublime.error_message('Unable to download ' + self.url +
+                            ' due to no ssl module available and no capable' +
+                            ' program found. Please install curl or wget.')
                 return False
 
             else:
@@ -265,14 +282,17 @@ class FetchDownload(threading.Thread):
                 last_path = None
                 for path in pkg.namelist():
                     last_path = path
-                    if path.find('/') in [len(path)-1, -1]:
+                    if path.find('/') in [len(path) - 1, -1]:
                         root_level_paths.append(path)
                     if path[0] == '/' or path.find('..') != -1:
-                        sublime.error_message(__name__ + ': Unable to extract package due to unsafe filename on one or more files.')
+                        sublime.error_message(__name__ +
+                            ': Unable to extract package due to unsafe' +
+                            ' filename on one or more files.')
                         return False
 
                 if last_path and len(root_level_paths) == 0:
-                    root_level_paths.append(last_path[0:last_path.find('/')+1])
+                    root_level_paths.append(
+                        last_path[0:last_path.find('/') + 1])
 
                 os.chdir(self.location)
 
@@ -283,7 +303,9 @@ class FetchDownload(threading.Thread):
                     if os.name == 'nt':
                         regex = ':|\*|\?|"|<|>|\|'
                         if re.search(regex, dest) != None:
-                            print ('%s: Skipping file from package named %s due to an invalid filename') % (__name__, path)
+                            print ('%s: Skipping file from package named %s' +
+                                ' due to an invalid filename') % (__name__,
+                                                                  path)
                             continue
                     regex = '[\x00-\x1F\x7F-\xFF]'
                     if re.search(regex, dest) != None:
@@ -302,18 +324,22 @@ class FetchDownload(threading.Thread):
                         try:
                             open(dest, 'wb').write(pkg.read(path))
                         except (IOError, UnicodeDecodeError):
-                            print ('%s: Skipping file from package named %s due to an invalid filename') % (__name__, path)
+                            print ('%s: Skipping file from package named %s' +
+                                ' due to an invalid filename') % (__name__,
+                                                                  path)
 
                 pkg.close()
                 os.remove(finalLocation)
                 self.result = True
-            
+
             return
 
         except (urllib2.HTTPError) as (e):
-            err = '%s: HTTP error %s contacting server' % (__name__, str(e.code))
+            err = '%s: HTTP error %s contacting server' % (__name__,
+                                                           str(e.code))
         except (urllib2.URLError) as (e):
-            err = '%s: URL error %s contacting server' % (__name__, str(e.reason))
+            err = '%s: URL error %s contacting server' % (__name__,
+                                                          str(e.reason))
 
         sublime.error_message(err)
         self.result = False
@@ -322,12 +348,14 @@ class FetchDownload(threading.Thread):
 class BinaryNotFoundError(Exception):
     pass
 
+
 class NonCleanExitError(Exception):
     def __init__(self, returncode):
         self.returncode = returncode
 
     def __str__(self):
         return repr(self.returncode)
+
 
 class CliDownloader():
     def find_binary(self, name):
@@ -350,4 +378,3 @@ class CliDownloader():
             error.output = output
             raise error
         return output
-        

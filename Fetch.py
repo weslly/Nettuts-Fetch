@@ -35,14 +35,19 @@ class FetchCommand(sublime_plugin.WindowCommand):
             s.set('files', self.filesPlaceholder)
         sublime.save_settings('Fetch.sublime-settings')
 
-    def run(self):
+    def run(self, *args, **kwargs):
+        _type = kwargs.get('type', None)
         self.s = sublime.load_settings('Fetch.sublime-settings')
         self.fileList = []
         self.packageList = []
 
-        options = ['Single file', 'Package file']
-
-        self.window.show_quick_panel(options, self.callback)
+        if _type == 'single':
+            self.list_files()
+        elif _type == 'package':
+            self.list_packages()
+        else:
+            options = ['Single file', 'Package file']
+            self.window.show_quick_panel(options, self.callback)
 
     def callback(self, index):
         if not self.window.views():

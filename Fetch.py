@@ -178,15 +178,15 @@ class FetchGetCommand(sublime_plugin.TextCommand):
 
         self.view.erase_status('fetch')
         if status and self.option == 'package':
-            sublime.status_message('The package from %s was successfully' +
-                                   ' downloaded and extracted' % (self.url))
+            sublime.status_message(('The package from %s was successfully' +
+                                   ' downloaded and extracted') % self.url)
 
         elif status and self.option == 'txt':
             for region in self.view.sel():
                 self.view.replace(edit, region, txt)
 
-            sublime.status_message('The file was successfully downloaded' +
-                                   ' from %s' % (self.url))
+            sublime.status_message(('The file was successfully downloaded' +
+                                   ' from %s') % self.url)
 
 
 class FetchDownload(threading.Thread):

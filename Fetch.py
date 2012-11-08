@@ -104,7 +104,10 @@ class FetchCommand(sublime_plugin.WindowCommand):
                 sublime.error_message('ERROR: Could not create directory.')
                 return False
 
-        self.window.active_view().run_command("fetch_get", {"option":
+        if not self.window.views():
+            self.window.new_file()
+
+        self.window.run_command("fetch_get", {"option":
                     "package", "url": self.packageUrl, "location": location})
 
     def list_files(self):
@@ -122,8 +125,11 @@ class FetchCommand(sublime_plugin.WindowCommand):
 
     def get_file(self, index):
         if (index > -1):
+            if not self.window.views():
+                self.window.new_file()
+
             url = self.fileList[index][1]
-            self.window.active_view().run_command("fetch_get",
+            self.window.run_command("fetch_get",
                                                  {"option": "txt", "url": url})
 
 

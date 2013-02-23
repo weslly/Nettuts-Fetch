@@ -1,7 +1,7 @@
 import sublime
 import sublime_plugin
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import os
 import sys
 import threading
@@ -65,7 +65,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
             sublime.save_settings('Fetch.sublime-settings')
             packages = self.s.get('packages')
 
-        for name, url in packages.iteritems():
+        for name, url in packages.items():
             self.packageList.append([name, url])
 
         self.window.show_quick_panel(self.packageList,
@@ -118,7 +118,7 @@ class FetchCommand(sublime_plugin.WindowCommand):
             sublime.save_settings('Fetch.sublime-settings')
             files = self.s.get('files')
 
-        for name, url in files.iteritems():
+        for name, url in files.items():
             self.fileList.append([name, url])
 
         self.window.show_quick_panel(self.fileList, self.get_file)
@@ -216,9 +216,9 @@ class FetchDownload(threading.Thread):
             downloaded = False
             has_ssl = 'ssl' in sys.modules
             if has_ssl:
-                request = urllib2.Request(self.url)
-                http_file = urllib2.urlopen(request, timeout=self.timeout)
-                self.txt = unicode(http_file.read(), 'utf-8')
+                request = urllib.request.Request(self.url)
+                http_file = urllib.request.urlopen(request, timeout=self.timeout)
+                self.txt = str(http_file.read(), 'utf-8')
                 downloaded = True
 
             else:
@@ -227,14 +227,14 @@ class FetchDownload(threading.Thread):
                     command = [clidownload.find_binary('wget'),
                                 '--connect-timeout=' + str(int(self.timeout)),
                                 self.url, '-qO-']
-                    self.txt = unicode(clidownload.execute(command), 'utf-8')
+                    self.txt = str(clidownload.execute(command), 'utf-8')
                     downloaded = True
 
                 elif clidownload.find_binary('curl'):
                     command = [clidownload.find_binary('curl'),
                                 '--connect-timeout', str(int(self.timeout)),
                                 '-L', '-sS', self.url]
-                    self.txt = unicode(clidownload.execute(command), 'utf-8')
+                    self.txt = str(clidownload.execute(command), 'utf-8')
                     downloaded = True
 
             if not downloaded:
@@ -245,7 +245,7 @@ class FetchDownload(threading.Thread):
             else:
                 self.result = True
 
-        except (urllib2.URLError) as (e):
+        except (urllib.error.URLError) as e:
             err = '%s: URL error %s contacting API' % (__name__, str(e.reason))
             sublime.error_message(err)
 
@@ -256,10 +256,10 @@ class FetchDownload(threading.Thread):
             has_ssl = 'ssl' in sys.modules
 
             if has_ssl:
-                urllib2.install_opener(
-                    urllib2.build_opener(urllib2.ProxyHandler()))
-                request = urllib2.Request(self.url)
-                response = urllib2.urlopen(request, timeout=self.timeout)
+                urllib.request.install_opener(
+                    urllib.request.build_opener(urllib.request.ProxyHandler()))
+                request = urllib.request.Request(self.url)
+                response = urllib.request.urlopen(request, timeout=self.timeout)
                 output = open(finalLocation, 'wb')
                 output.write(response.read())
                 output.close()
@@ -314,9 +314,9 @@ class FetchDownload(threading.Thread):
                     if os.name == 'nt':
                         regex = ':|\*|\?|"|<|>|\|'
                         if re.search(regex, dest) != None:
-                            print ('%s: Skipping file from package named %s' +
+                            print(('%s: Skipping file from package named %s' +
                                 ' due to an invalid filename') % (__name__,
-                                                                  path)
+                                                                  path))
                             continue
                     regex = '[\x00-\x1F\x7F-\xFF]'
                     if re.search(regex, dest) != None:
@@ -335,9 +335,9 @@ class FetchDownload(threading.Thread):
                         try:
                             open(dest, 'wb').write(pkg.read(path))
                         except (IOError, UnicodeDecodeError):
-                            print ('%s: Skipping file from package named %s' +
+                            print(('%s: Skipping file from package named %s' +
                                 ' due to an invalid filename') % (__name__,
-                                                                  path)
+                                                                  path))
 
                 pkg.close()
                 os.remove(finalLocation)
@@ -345,10 +345,10 @@ class FetchDownload(threading.Thread):
 
             return
 
-        except (urllib2.HTTPError) as (e):
+        except (urllib.error.HTTPError) as e:
             err = '%s: HTTP error %s contacting server' % (__name__,
                                                            str(e.code))
-        except (urllib2.URLError) as (e):
+        except (urllib.error.URLError) as e:
             err = '%s: URL error %s contacting server' % (__name__,
                                                           str(e.reason))
 

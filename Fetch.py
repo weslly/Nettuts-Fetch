@@ -182,17 +182,21 @@ class FetchGetCommand(sublime_plugin.TextCommand):
                  offset, i, dir), 100)
             return
 
-        self.view.erase_status('fetch')
+        #self.view.erase_status('fetch')
         if status and self.option == 'package':
             sublime.status_message(('The package from %s was successfully' +
                                    ' downloaded and extracted') % self.url)
 
         elif status and self.option == 'txt':
-            for region in self.view.sel():
-                self.view.replace(edit, region, txt)
-
+            new_file = sublime.active_window().new_file()
+            new_file.run_command('fetch_new_file', {'txt': txt})
             sublime.status_message(('The file was successfully downloaded' +
                                    ' from %s') % self.url)
+
+
+class FetchNewFile(sublime_plugin.TextCommand):
+    def run(self, edit, txt):
+        self.view.insert(edit, 0, txt)
 
 
 class FetchDownload(threading.Thread):

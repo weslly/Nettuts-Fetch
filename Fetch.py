@@ -42,8 +42,10 @@ class FetchCommand(sublime_plugin.WindowCommand):
         self.packageList = []
 
         if _type == 'single':
+            sublime.error_message('You are using a deprecated branch of Nettuts+ Fetch.\n\nTo get the latest version with Sublime Text 3 support, checkout the master branch or install it again using Package Control.')
             self.list_files()
         elif _type == 'package':
+            sublime.error_message('You are using a deprecated branch of Nettuts+ Fetch.\n\nTo get the latest version with Sublime Text 3 support, checkout the master branch or install it again using Package Control.')
             self.list_packages()
         else:
             options = ['Single file', 'Package file']

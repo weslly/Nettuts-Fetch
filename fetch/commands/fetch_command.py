@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 import sublime
 import sublime_plugin
 import os
+
 
 class FetchCommand(sublime_plugin.WindowCommand):
     fileList = []
@@ -106,7 +108,13 @@ class FetchCommand(sublime_plugin.WindowCommand):
             files = self.s.get('files')
 
         for name, url in files.items():
-            self.fileList.append([name, url])
+            try:
+                # Python 2
+                self.fileList.append([name.decode('utf-8'),
+                                      url.decode('utf-8')])
+            except AttributeError:
+                # Python 3
+                self.fileList.append([name, url])
 
         self.window.show_quick_panel(self.fileList, self.get_file)
 

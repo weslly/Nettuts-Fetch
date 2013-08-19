@@ -55,7 +55,13 @@ class FetchCommand(sublime_plugin.WindowCommand):
             packages = self.s.get('packages')
 
         for name, url in packages.items():
-            self.packageList.append([name, url])
+            try:
+                # Python 2
+                self.packageList.append([name.decode('utf-8'),
+                                         url.decode('utf-8')])
+            except AttributeError:
+                # Python 3
+                self.packageList.append([name, url])
 
         self.window.show_quick_panel(self.packageList,
                                      self.set_package_location)

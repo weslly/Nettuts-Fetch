@@ -48,8 +48,8 @@ class Downloader(threading.Thread):
     def download_text(self):
         try:
             downloaded = False
-            has_ssl = 'ssl' in sys.modules
-            if has_ssl:
+            # has_ssl = 'ssl' in sys.modules
+            try:
                 request = urllib_compat.Request(self.url)
                 http_file = urllib_compat.urlopen(request, timeout=self.timeout)
                 if sublime_version == 2:
@@ -59,7 +59,7 @@ class Downloader(threading.Thread):
 
                 downloaded = True
 
-            else:
+            except:
                 clidownload = CliDownloader()
                 if clidownload.find_binary('wget'):
                     command = [clidownload.find_binary('wget'),
@@ -92,16 +92,16 @@ class Downloader(threading.Thread):
                 self.result = True
 
         except (URLError) as e:
-            err = '%s: URL error %s contacting API' % (__name__, str(e.code))
+            err = '%s: URL error %s contacting API' % (__name__, str(e))
             sublime.error_message(err)
 
     def download_package(self):
         downloaded = False
         try:
             finalLocation = os.path.join(self.location, '__tmp_package.zip')
-            has_ssl = 'ssl' in sys.modules
+            # has_ssl = 'ssl' in sys.modules
 
-            if has_ssl:
+            try:
                 urllib_compat.install_opener(
                     urllib_compat.build_opener(urllib_compat.ProxyHandler()))
                 request = urllib_compat.Request(self.url)
@@ -111,7 +111,7 @@ class Downloader(threading.Thread):
                 output.close()
                 downloaded = True
 
-            else:
+            except:
                 clidownload = CliDownloader()
                 if clidownload.find_binary('wget'):
                     command = [clidownload.find_binary('wget'),
@@ -202,11 +202,9 @@ class Downloader(threading.Thread):
             return
 
         except (HTTPError) as e:
-            err = '%s: HTTP error %s contacting server' % (__name__,
-                                                           str(e.code))
+            err = '%s: HTTP error %s contacting server' % (__name__, str(e))
         except (URLError) as e:
-            err = '%s: URL error %s contacting server' % (__name__,
-                                                          str(e.code))
+            err = '%s: URL error %s contacting server' % (__name__, str(e))
 
         sublime.error_message(err)
         self.result = False
